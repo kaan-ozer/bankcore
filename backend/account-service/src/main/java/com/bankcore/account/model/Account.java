@@ -8,4 +8,22 @@ public class Account {
     private String iban;
     private BigDecimal balance;
     private String currency;
+
+    public Account(String iban, String currency) {
+        this.id = UUID.randomUUID();
+        this.iban = iban;
+        this.currency = currency;
+        this.balance = BigDecimal.ZERO;
+    }
+
+    public void deposit(BigDecimal amount) {
+        if(amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException("Deposit amount must be positive");
+        }
+        this.balance = this.balance.add(amount);
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
 }
