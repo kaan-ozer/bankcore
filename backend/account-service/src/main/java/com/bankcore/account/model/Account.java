@@ -17,13 +17,25 @@ public class Account {
     }
 
     public void deposit(BigDecimal amount) {
-        if(amount == null || amount.signum() <= 0) {
+        if (amount == null || amount.signum() <= 0) {
             throw new IllegalArgumentException("Deposit amount must be positive");
         }
         this.balance = this.balance.add(amount);
     }
 
+    public UUID getId() {
+        return id;
+    }
+
     public BigDecimal getBalance() {
         return balance;
+    }
+
+    public String getIban() {
+        return iban;
+    }
+
+    public String getCurrency() {
+        return currency;
     }
 }
