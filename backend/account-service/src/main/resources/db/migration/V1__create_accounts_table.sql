@@ -1,0 +1,6 @@
+CREATE TABLE accounts (
+    id UUID PRIMARY KEY,
+    iban VARCHAR(34) NOT NULL UNIQUE,
+    balance NUMERIC(19, 2) NOT NULL DEFAULT 0,
+    currency VARCHAR(3) NOT NULL
+);
