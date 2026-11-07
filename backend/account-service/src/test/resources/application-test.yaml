@@ -1,0 +1,7 @@
+spring:
+  config:
+    import: optional:file:.env.test[.properties]
+  datasource:
+    url: ${TEST_DB_URL}
+    username: ${TEST_DB_USERNAME}
+    password: ${TEST_DB_PASSWORD}
