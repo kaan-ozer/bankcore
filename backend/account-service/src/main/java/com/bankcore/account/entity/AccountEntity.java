@@ -35,6 +35,10 @@ public class AccountEntity {
         this.currency = currency;
     }
 
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
+    }
+
     public UUID getId() {
         return id;
     }
