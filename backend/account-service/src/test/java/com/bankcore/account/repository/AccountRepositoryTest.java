@@ -35,7 +35,7 @@ public class AccountRepositoryTest {
 
         AccountEntity entity = new AccountEntity(
                 accountId,
-                "TR123456789012345678901234",
+                generateTestIban(),
                 BigDecimal.ZERO,
                 "TRY");
         AccountEntity savedEntity = accountRepository.save(entity);
@@ -54,5 +54,12 @@ public class AccountRepositoryTest {
         assertEquals(entity.getIban(), found.getIban());
         assertEquals(0, entity.getBalance().compareTo(found.getBalance()));
         assertEquals(entity.getCurrency(), found.getCurrency());
+    }
+
+    private String generateTestIban() {
+        return "TR" + java.util.UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .substring(0, 24);
     }
 }

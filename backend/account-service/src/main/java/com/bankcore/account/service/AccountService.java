@@ -34,29 +34,17 @@ public class AccountService {
     }
 
     public Account getAccount(UUID accountId) {
-        AccountEntity entity = accountRepository.findById(accountId)
-                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
+        AccountEntity entity = findAccountEntity(accountId);
 
-        return new Account(
-                entity.getId(),
-                entity.getIban(),
-                entity.getBalance(),
-                entity.getCurrency());
+        return toDomain(entity);
     }
 
     @Transactional
     public void deposit(UUID accountId, BigDecimal amount) {
 
-        AccountEntity entity = accountRepository.findById(accountId)
-                .orElseThrow(() -> {
-                    return new IllegalArgumentException("Account not found");
-                });
+        AccountEntity entity = findAccountEntity(accountId);
 
-        Account account = new Account(
-                entity.getId(),
-                entity.getIban(),
-                entity.getBalance(),
-                entity.getCurrency());
+        Account account = toDomain(entity);
 
         account.deposit(amount);
 
@@ -66,13 +54,25 @@ public class AccountService {
     @Transactional
     public void withdraw(UUID accountId, BigDecimal amount) {
 
-        AccountEntity entity = accountRepository.findById(accountId)
-                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
+        AccountEntity entity = accountRepository.findByIdForUpdate(accountId).orElseThrow();
 
-        Account account = new Account(entity.getId(), entity.getIban(), entity.getBalance(), entity.getCurrency());
+        Account account = toDomain(entity);
 
         account.withdraw(amount);
 
         entity.setBalance(account.getBalance());
+    }
+
+    private AccountEntity findAccountEntity(UUID accountId) {
+        return accountRepository.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
+    }
+
+    private Account toDomain(AccountEntity entity) {
+        return new Account(
+                entity.getId(),
+                entity.getIban(),
+                entity.getBalance(),
+                entity.getCurrency());
     }
 }

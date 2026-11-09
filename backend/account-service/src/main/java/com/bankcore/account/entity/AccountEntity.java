@@ -7,6 +7,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "accounts")
@@ -23,6 +24,10 @@ public class AccountEntity {
 
     @Column(nullable = false, length = 3)
     private String currency;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     protected AccountEntity() {
 

@@ -23,99 +23,107 @@ import jakarta.persistence.EntityManager;
 @Transactional
 class AccountServiceIntegrationTest {
 
-    @Autowired
-    private AccountService accountService;
+        @Autowired
+        private AccountService accountService;
 
-    @Autowired
-    private AccountRepository accountRepository;
+        @Autowired
+        private AccountRepository accountRepository;
 
-    @Autowired
-    private EntityManager entityManager;
+        @Autowired
+        private EntityManager entityManager;
 
-    @Test
-    void shouldPersistCreatedAccount() {
+        @Test
+        void shouldPersistCreatedAccount() {
 
-        Account account = accountService.createAccount(
-                "TR123456789012345678901234",
-                "TRY");
+                Account account = accountService.createAccount(
+                                generateTestIban(),
+                                "TRY");
 
-        entityManager.flush();
-        entityManager.clear();
+                entityManager.flush();
+                entityManager.clear();
 
-        AccountEntity entity = accountRepository
-                .findById(account.getId())
-                .orElseThrow();
+                AccountEntity entity = accountRepository
+                                .findById(account.getId())
+                                .orElseThrow();
 
-        assertEquals(account.getId(), entity.getId());
-        assertEquals(account.getIban(), entity.getIban());
-        assertEquals(account.getCurrency(), entity.getCurrency());
-        assertEquals(
-                0,
-                BigDecimal.ZERO.compareTo(entity.getBalance()));
-    }
+                assertEquals(account.getId(), entity.getId());
+                assertEquals(account.getIban(), entity.getIban());
+                assertEquals(account.getCurrency(), entity.getCurrency());
+                assertEquals(
+                                0,
+                                BigDecimal.ZERO.compareTo(entity.getBalance()));
+        }
 
-    @Test
-    void shouldPersistDepositToDatabase() {
+        @Test
+        void shouldPersistDepositToDatabase() {
 
-        Account account = accountService.createAccount(
-                "TR123456789012345678901234",
-                "TRY");
+                Account account = accountService.createAccount(
+                                generateTestIban(),
+                                "TRY");
 
-        accountService.deposit(
-                account.getId(),
-                new BigDecimal("500"));
+                accountService.deposit(
+                                account.getId(),
+                                new BigDecimal("500"));
 
-        entityManager.flush();
-        entityManager.clear();
+                entityManager.flush();
+                entityManager.clear();
 
-        AccountEntity entity = accountRepository
-                .findById(account.getId())
-                .orElseThrow();
+                AccountEntity entity = accountRepository
+                                .findById(account.getId())
+                                .orElseThrow();
 
-        assertEquals(
-                0,
-                new BigDecimal("500").compareTo(entity.getBalance()));
-    }
+                assertEquals(
+                                0,
+                                new BigDecimal("500").compareTo(entity.getBalance()));
+        }
 
-    @Test
-    void shouldPersistWithdrawalToDatabase() {
+        @Test
+        void shouldPersistWithdrawalToDatabase() {
 
-        Account account = accountService.createAccount(
-                "TR123456789012345678901234",
-                "TRY");
+                Account account = accountService.createAccount(
+                                generateTestIban(),
+                                "TRY");
 
-        accountService.deposit(account.getId(), new BigDecimal("1000"));
+                accountService.deposit(account.getId(), new BigDecimal("1000"));
 
-        accountService.withdraw(account.getId(), new BigDecimal("300"));
+                accountService.withdraw(account.getId(), new BigDecimal("300"));
 
-        entityManager.flush();
+                entityManager.flush();
 
-        entityManager.clear();
+                entityManager.clear();
 
-        AccountEntity entity = accountRepository.findById(account.getId()).orElseThrow();
+                AccountEntity entity = accountRepository.findById(account.getId()).orElseThrow();
 
-        assertEquals(0, new BigDecimal("700").compareTo(entity.getBalance()));
+                assertEquals(0, new BigDecimal("700").compareTo(entity.getBalance()));
 
-    }
+        }
 
-    @Test
-    void shouldRejectWithdrawalWhenBalanceIsInsufficient() {
-        Account account = accountService.createAccount(
-                "TR123456789012345678901234",
-                "TRY");
+        @Test
+        void shouldRejectWithdrawalWhenBalanceIsInsufficient() {
+                Account account = accountService.createAccount(
+                                generateTestIban(),
+                                "TRY");
 
-        accountService.deposit(account.getId(), new BigDecimal("500"));
+                accountService.deposit(account.getId(), new BigDecimal("500"));
 
-        assertThrows(IllegalArgumentException.class,
-                () -> accountService.withdraw(account.getId(), new BigDecimal("800")));
+                assertThrows(IllegalArgumentException.class,
+                                () -> accountService.withdraw(account.getId(), new BigDecimal("800")));
 
-        entityManager.flush();
-        entityManager.clear();
+                entityManager.flush();
+                entityManager.clear();
 
-        AccountEntity entity = accountRepository.findById(account.getId()).orElseThrow();// Boşsa otomatik olarak
-                                                                                         // NoSuchElementException
-                                                                                         // fırlatır.
+                AccountEntity entity = accountRepository.findById(account.getId()).orElseThrow();// Boşsa otomatik
+                                                                                                 // olarak
+                                                                                                 // NoSuchElementException
+                                                                                                 // fırlatır.
 
-        assertEquals(0, new BigDecimal("500").compareTo(entity.getBalance()));
-    }
+                assertEquals(0, new BigDecimal("500").compareTo(entity.getBalance()));
+        }
+
+        private String generateTestIban() {
+                return "TR" + java.util.UUID.randomUUID()
+                                .toString()
+                                .replace("-", "")
+                                .substring(0, 24);
+        }
 }
