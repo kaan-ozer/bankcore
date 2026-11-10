@@ -42,7 +42,8 @@ public class AccountService {
     @Transactional
     public void deposit(UUID accountId, BigDecimal amount) {
 
-        AccountEntity entity = findAccountEntity(accountId);
+        AccountEntity entity = accountRepository.findByIdForUpdate(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
 
         Account account = toDomain(entity);
 
