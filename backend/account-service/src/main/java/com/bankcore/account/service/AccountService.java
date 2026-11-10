@@ -64,6 +64,37 @@ public class AccountService {
         entity.setBalance(account.getBalance());
     }
 
+    @Transactional
+    public void transfer(UUID fromId, UUID toId, BigDecimal amount) {
+
+        if (fromId.equals(toId)) {
+            throw new IllegalArgumentException(
+                    "Cannot transfer to the same account");
+        }
+
+        // Deadlock riskini azaltmak için sabit kilit sırası
+        UUID firstId = fromId.compareTo(toId) < 0 ? fromId : toId;
+        UUID secondId = fromId.compareTo(toId) < 0 ? toId : fromId;
+
+        AccountEntity first = accountRepository.findByIdForUpdate(firstId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
+
+        AccountEntity second = accountRepository.findByIdForUpdate(secondId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
+
+        AccountEntity sender = fromId.equals(firstId) ? first : second;
+        AccountEntity receiver = toId.equals(firstId) ? first : second;
+
+        Account senderAccount = toDomain(sender);
+        Account receiverAccount = toDomain(receiver);
+
+        senderAccount.withdraw(amount);
+        receiverAccount.deposit(amount);
+
+        sender.setBalance(senderAccount.getBalance());
+        receiver.setBalance(receiverAccount.getBalance());
+    }
+
     private AccountEntity findAccountEntity(UUID accountId) {
         return accountRepository.findById(accountId)
                 .orElseThrow(() -> new IllegalArgumentException("Account not found"));
