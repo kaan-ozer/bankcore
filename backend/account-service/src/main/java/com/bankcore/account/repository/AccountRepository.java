@@ -15,7 +15,7 @@ import jakarta.persistence.LockModeType;
 public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT a FROM AccountEntity a WHERE a.id = id")
+    @Query("SELECT a FROM AccountEntity a WHERE a.id = :id")
     Optional<AccountEntity> findByIdForUpdate(
             @Param("id") UUID id);
 }

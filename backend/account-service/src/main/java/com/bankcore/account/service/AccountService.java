@@ -48,7 +48,7 @@ public class AccountService {
 
         account.deposit(amount);
 
-        entity.setBalance(amount);
+        entity.setBalance(account.getBalance());
     }
 
     @Transactional
