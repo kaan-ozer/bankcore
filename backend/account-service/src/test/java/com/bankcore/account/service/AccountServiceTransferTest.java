@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -24,6 +25,9 @@ class AccountServiceTransferTest {
 
         @Autowired
         private AccountRepository accountRepository;
+
+        @Autowired
+        private TransactionTemplate transactionTemplate;
 
         @Test
         void shouldTransferMoneyBetweenAccounts() {
@@ -118,6 +122,51 @@ class AccountServiceTransferTest {
                 } finally {
                         accountRepository.deleteById(senderId);
                         accountRepository.deleteById(receiverId);
+                }
+        }
+
+        @Test
+        void shouldRollbackDatabaseChangesWhenTransactionFails() {
+
+                UUID accountId = UUID.randomUUID();
+
+                AccountEntity account = new AccountEntity(
+                                accountId,
+                                "TR-ROLLBACK-TEST",
+                                new BigDecimal("1000"),
+                                "TRY");
+
+                accountRepository.saveAndFlush(account);
+
+                try {
+                        assertThrows(IllegalStateException.class, () -> {
+
+                                transactionTemplate.executeWithoutResult(status -> {
+
+                                        AccountEntity lockedAccount = accountRepository.findByIdForUpdate(accountId)
+                                                        .orElseThrow();
+
+                                        // Bakiyeyi değiştiriyoruz.
+                                        lockedAccount.setBalance(new BigDecimal("700"));
+
+                                        // SQL'i veritabanına gönderiyoruz.
+                                        accountRepository.flush();
+
+                                        // Bilerek hata oluşturuyoruz.
+                                        throw new IllegalStateException("Simulated failure");
+                                });
+                        });
+
+                        // Transaction bittikten sonra yeniden okuyoruz.
+                        AccountEntity updatedAccount = accountRepository.findById(accountId).orElseThrow();
+
+                        assertEquals(
+                                        0,
+                                        new BigDecimal("1000")
+                                                        .compareTo(updatedAccount.getBalance()));
+
+                } finally {
+                        accountRepository.deleteById(accountId);
                 }
         }
 
