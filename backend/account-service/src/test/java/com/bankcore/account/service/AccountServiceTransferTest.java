@@ -10,6 +10,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -146,18 +152,14 @@ class AccountServiceTransferTest {
                                         AccountEntity lockedAccount = accountRepository.findByIdForUpdate(accountId)
                                                         .orElseThrow();
 
-                                        // Bakiyeyi değiştiriyoruz.
                                         lockedAccount.setBalance(new BigDecimal("700"));
 
-                                        // SQL'i veritabanına gönderiyoruz.
                                         accountRepository.flush();
 
-                                        // Bilerek hata oluşturuyoruz.
                                         throw new IllegalStateException("Simulated failure");
                                 });
                         });
 
-                        // Transaction bittikten sonra yeniden okuyoruz.
                         AccountEntity updatedAccount = accountRepository.findById(accountId).orElseThrow();
 
                         assertEquals(
@@ -167,6 +169,53 @@ class AccountServiceTransferTest {
 
                 } finally {
                         accountRepository.deleteById(accountId);
+                }
+        }
+
+        @Test
+        void shouldTransferConcurrentlyWithoutDeadlock() throws Exception {
+
+                UUID aId = UUID.randomUUID();
+                UUID bId = UUID.randomUUID();
+
+                accountRepository.saveAndFlush(new AccountEntity(
+                                aId, "TR-CONCURRENT-A", new BigDecimal("1000"), "TRY"));
+
+                accountRepository.saveAndFlush(new AccountEntity(
+                                bId, "TR-CONCURRENT-B", new BigDecimal("1000"), "TRY"));
+
+                ExecutorService executor = Executors.newFixedThreadPool(2);
+
+                CountDownLatch start = new CountDownLatch(1);
+                try {
+
+                        Future<?> first = executor.submit(() -> {
+                                start.await();
+                                accountService.transfer(aId, bId, new BigDecimal("300"));
+                                return null;
+                        });
+
+                        Future<?> second = executor.submit(() -> {
+                                start.await();
+                                accountService.transfer(bId, aId, new BigDecimal("200"));
+                                return null;
+                        });
+
+                        start.countDown();
+
+                        first.get(10, TimeUnit.SECONDS);
+                        second.get(10, TimeUnit.SECONDS);
+
+                        AccountEntity a = accountRepository.findById(aId).orElseThrow();
+                        AccountEntity b = accountRepository.findById(bId).orElseThrow();
+
+                        assertEquals(0, new BigDecimal("900").compareTo(a.getBalance()));
+                        assertEquals(0, new BigDecimal("1100").compareTo(b.getBalance()));
+
+                } finally {
+                        executor.shutdownNow();
+                        accountRepository.deleteById(aId);
+                        accountRepository.deleteById(bId);
                 }
         }
 
