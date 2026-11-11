@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -74,4 +75,50 @@ class AccountServiceTransferTest {
                         accountRepository.deleteById(receiverId);
                 }
         }
+
+        @Test
+        void shouldRejectTransferWhenBalanceIsInsufficient() {
+
+                UUID senderId = UUID.randomUUID();
+                UUID receiverId = UUID.randomUUID();
+
+                AccountEntity sender = new AccountEntity(
+                                senderId, "TR-SENDER-LOW",
+                                new BigDecimal("100"), "TRY");
+
+                AccountEntity receiver = new AccountEntity(
+                                receiverId, "TR-RECEIVER-LOW",
+                                new BigDecimal("500"), "TRY");
+
+                accountRepository.saveAndFlush(sender);
+                accountRepository.saveAndFlush(receiver);
+
+                try {
+                        assertThrows(
+                                        IllegalArgumentException.class,
+                                        () -> accountService.transfer(
+                                                        senderId,
+                                                        receiverId,
+                                                        new BigDecimal("300")));
+
+                        AccountEntity updatedSender = accountRepository.findById(senderId).orElseThrow();
+
+                        AccountEntity updatedReceiver = accountRepository.findById(receiverId).orElseThrow();
+
+                        assertEquals(
+                                        0,
+                                        new BigDecimal("100")
+                                                        .compareTo(updatedSender.getBalance()));
+
+                        assertEquals(
+                                        0,
+                                        new BigDecimal("500")
+                                                        .compareTo(updatedReceiver.getBalance()));
+
+                } finally {
+                        accountRepository.deleteById(senderId);
+                        accountRepository.deleteById(receiverId);
+                }
+        }
+
 }
